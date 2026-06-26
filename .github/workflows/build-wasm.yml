@@ -1,0 +1,136 @@
+name: chdman WASM Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      mame_ref:
+        description: 'MAME GitHub branch, tag, or SHA (e.g. "mame0288")'
+        required: true
+        type: string
+        default: 'mame0288'
+      emsdk_version:
+        description: 'Emscripten SDK version'
+        required: true
+        type: string
+        default: '3.1.74'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  MAME_REF: ${{ inputs.mame_ref || 'mame0288' }}
+  EMSDK_VERSION: ${{ inputs.emsdk_version || '3.1.74' }}
+  EMULATOR: 0
+  TOOLS: 1
+  TESTS: 0
+  IGNORE_GIT: 1
+  NOWERROR: 1
+  DEBUG: 0
+  SYMBOLS: 0
+  OPTIMIZE: s
+  NOASM: 1
+
+jobs:
+  build-wasm:
+    name: build chdman.wasm
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout MAME
+        uses: actions/checkout@v4
+        with:
+          repository: mamedev/mame
+          ref: ${{ env.MAME_REF }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential python3 git \
+            libsdl2-dev libsdl2-ttf-dev \
+            libfontconfig-dev \
+            libasio-dev \
+            libexpat1-dev \
+            zlib1g-dev \
+            libzstd-dev \
+            libjpeg-turbo8-dev \
+            libsqlite3-dev \
+            libutf8proc-dev \
+            libglm-dev \
+            rapidjson-dev
+
+      - name: Setup Emscripten SDK
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: ${{ env.EMSDK_VERSION }}
+          actions-cache-folder: .emsdk-cache
+
+      - name: Verify emcc
+        run: emcc --version
+
+      - name: Build Emscripten ports (zlib, libjpeg, sqlite3, zstd)
+        run: |
+          embuilder build zlib libjpeg sqlite3 zstd
+
+      - name: Build chdman WASM
+        env:
+          EMSCRIPTEN: ${{ env.EMSDK_EMSDK_PATH }}
+        run: |
+          emmake make VERBOSE=1 -j$(nproc) -r \
+            EMULATOR=${{ env.EMULATOR }} \
+            TOOLS=${{ env.TOOLS }} \
+            TESTS=${{ env.TESTS }} \
+            IGNORE_GIT=${{ env.IGNORE_GIT }} \
+            NOWERROR=${{ env.NOWERROR }} \
+            DEBUG=${{ env.DEBUG }} \
+            SYMBOLS=${{ env.SYMBOLS }} \
+            OPTIMIZE=${{ env.OPTIMIZE }} \
+            NOASM=${{ env.NOASM }} \
+            NO_USE_MIDI=1 \
+            NO_USE_PORTAUDIO=1 \
+            NO_USE_PULSEAUDIO=1 \
+            NO_USE_PIPEWIRE=1 \
+            NO_X11=1 \
+            NO_USE_XINPUT=1 \
+            USE_QTDEBUG=0 \
+            ARCHOPTS='-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s FORCE_FILESYSTEM=1 -s MODULARIZE=1 -s EXPORT_NAME=ChdmanModule -s EXPORTED_RUNTIME_METHODS=["FS","callMain"] -s EXIT_RUNTIME=0 -O2' \
+            asmjs
+
+      - name: Locate build artifacts
+        id: locate
+        run: |
+          echo "Listing root build outputs:"
+          ls -lh *.js *.wasm 2>/dev/null || true
+          find build/ -name "chdman*" 2>/dev/null || true
+
+      - name: Collect WASM artifacts
+        run: |
+          mkdir -p dist
+          find . -maxdepth 3 \( -name "chdman.js" -o -name "chdman.wasm" \) -exec cp {} dist/ \;
+          ls -lh dist/
+
+      - name: Smoke test (node)
+        run: |
+          node -e "
+            const ChdmanModule = require('./dist/chdman.js');
+            ChdmanModule().then(m => {
+              console.log('WASM module loaded OK');
+              console.log('FS available:', typeof m.FS !== 'undefined');
+            });
+          "
+
+      - name: Upload WASM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: chdman-wasm-${{ env.MAME_REF }}-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+
+      - name: Print artifact sizes
+        run: |
+          echo "=== Build output sizes ==="
+          du -sh dist/*
