@@ -81,7 +81,8 @@ jobs:
         env:
           EMSCRIPTEN: ${{ env.EMSDK_EMSDK_PATH }}
         run: |
-          emmake make VERBOSE=1 -j$(nproc) -r \
+          set -o pipefail
+          emmake make VERBOSE=1 -j1 -r \
             EMULATOR=${{ env.EMULATOR }} \
             TOOLS=${{ env.TOOLS }} \
             TESTS=${{ env.TESTS }} \
@@ -99,7 +100,14 @@ jobs:
             NO_USE_XINPUT=1 \
             USE_QTDEBUG=0 \
             ARCHOPTS='-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s FORCE_FILESYSTEM=1 -s MODULARIZE=1 -s EXPORT_NAME=ChdmanModule -s EXPORTED_RUNTIME_METHODS=["FS","callMain"] -s EXIT_RUNTIME=0 -O2' \
-            TARGET=chdman SUBTARGET=chdman asmjs
+            TARGET=chdman SUBTARGET=chdman asmjs 2>&1 | tee asmjs-build.log
+
+      - name: Upload asmjs build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: asmjs-build-log-${{ env.MAME_REF }}-${{ github.sha }}
+          path: asmjs-build.log
+          if-no-files-found: warn
 
       - name: Locate build artifacts
         id: locate
