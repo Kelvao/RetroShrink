@@ -99,7 +99,7 @@ jobs:
             NO_USE_XINPUT=1 \
             USE_QTDEBUG=0 \
             ARCHOPTS='-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s FORCE_FILESYSTEM=1 -s MODULARIZE=1 -s EXPORT_NAME=ChdmanModule -s EXPORTED_RUNTIME_METHODS=["FS","callMain"] -s EXIT_RUNTIME=0 -O2' \
-            chdman
+            TARGET=chdman SUBTARGET=chdman asmjs
 
       - name: Locate build artifacts
         id: locate
