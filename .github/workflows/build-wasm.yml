@@ -20,6 +20,7 @@ concurrency:
 
 permissions:
   contents: write
+  pull-requests: write
 
 env:
   MAME_REF: ${{ inputs.mame_ref || 'mame0288' }}
@@ -109,14 +110,13 @@ jobs:
 
       - name: Collect WASM artifacts
         run: |
-          mkdir -p dist
-          find . -maxdepth 3 \( -name "chdman.js" -o -name "chdman.wasm" \) -exec cp {} dist/ \;
-          ls -lh dist/
+          find . -maxdepth 3 \( -name "chdman.js" -o -name "chdman.wasm" \) -exec cp {} public/ \; 
+          ls -lh public/chdman.*
 
       - name: Smoke test (node)
         run: |
           node -e "
-            const ChdmanModule = require('./dist/chdman.js');
+            const ChdmanModule = require('./public/chdman.js');
             ChdmanModule().then(m => {
               console.log('WASM module loaded OK');
               console.log('FS available:', typeof m.FS !== 'undefined');
@@ -127,10 +127,27 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: chdman-wasm-${{ env.MAME_REF }}-${{ github.sha }}
-          path: dist/
+          path: public/chdman.*
           if-no-files-found: error
+
+      - name: Create PR with built artifacts
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: build/chdman-wasm-${{ github.sha }}
+          title: "Add chdman WASM artifacts for MAME ref ${{ env.MAME_REF }}"
+          body: |
+            This PR includes the generated `chdman` WebAssembly artifacts from the MAME build reference `${{ env.MAME_REF }}`.
+
+            - Workflow: `${{ github.workflow }}`
+            - SHA: `${{ github.sha }}`
+            - Artifact path: `public/`
+
+            The build artifacts are committed so the PR can be reviewed and downloaded directly from the branch.
+          commit-message: "Add chdman WASM artifacts for MAME ref ${{ env.MAME_REF }}"
+          delete-branch: true
 
       - name: Print artifact sizes
         run: |
           echo "=== Build output sizes ==="
-          du -sh dist/*
+          du -sh public/chdman.*
