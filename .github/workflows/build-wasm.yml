@@ -72,9 +72,9 @@ jobs:
       - name: Verify emcc
         run: emcc --version
 
-      - name: Build Emscripten ports (zlib, libjpeg, sqlite3, zstd)
+      - name: Build Emscripten ports (zlib, libjpeg, sqlite3)
         run: |
-          embuilder build zlib libjpeg sqlite3 zstd
+          embuilder build zlib libjpeg sqlite3
 
       - name: Build chdman WASM
         env:
