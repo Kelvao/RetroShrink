@@ -80,29 +80,32 @@ jobs:
           echo "=== Depois do patch ==="
           grep -rn "sound_manager" scripts/ || echo "(nenhum - patch OK)"
 
+      - name: Pre-build genie com gcc nativo
+        run: |
+          # O MAME compila o genie (ferramenta de build interna) com gcc antes de usar emcc.
+          # Qualquer variavel no ambiente com flags emcc quebra o gcc nessa etapa.
+          # Compilamos o genie separadamente aqui, com ambiente limpo.
+          make -j$(nproc) -r -C 3rdparty/genie/build/gmake.linux -f genie.make
+
       - name: Build chdman WASM
+        env:
+          # EMCC_CFLAGS e lida pelo emcc/em++ wrapper diretamente - nao e expandida
+          # pelo Make como funcao, entao virgulas aqui NAO quebram $(subst ...).
+          # O problema anterior (subst/LDFLAGS) era porque LDFLAGS e referenciada
+          # explicitamente no genie.make. EMCC_CFLAGS nao e.
+          EMCC_CFLAGS: >-
+            -sWASM=1
+            -sALLOW_MEMORY_GROWTH=1
+            -sFORCE_FILESYSTEM=1
+            -sMODULARIZE=1
+            -sEXPORT_NAME=ChdmanModule
+            -sEXPORTED_RUNTIME_METHODS=FS,callMain
+            -sEXIT_RUNTIME=0
+            -sERROR_ON_UNDEFINED_SYMBOLS=0
+            -sWARN_ON_UNDEFINED_SYMBOLS=0
+            -O2
         run: |
           set -euo pipefail
-
-          # Flags sem virgula vao via EMCC_CFLAGS (Make herda o env mas nao expande virgulas aqui)
-          # EXPORTED_RUNTIME_METHODS tem virgula e quebra $(subst) do Make se ficar no env.
-          # Solucao: gravar as flags de link num response file e passar via EMCC_LDFLAGS=@arquivo.
-          cat > /tmp/emcc_link_flags.txt << 'FLAGSEOF'
-          -sWASM=1
-          -sALLOW_MEMORY_GROWTH=1
-          -sFORCE_FILESYSTEM=1
-          -sMODULARIZE=1
-          -sEXPORT_NAME=ChdmanModule
-          -sEXPORTED_RUNTIME_METHODS=FS,callMain
-          -sEXIT_RUNTIME=0
-          -sERROR_ON_UNDEFINED_SYMBOLS=0
-          -sWARN_ON_UNDEFINED_SYMBOLS=0
-          -O2
-          FLAGSEOF
-
-          # Converte para linha unica (emcc nao suporta response file multiline igual gcc)
-          LINK_FLAGS=$(tr '\n' ' ' < /tmp/emcc_link_flags.txt | xargs)
-
           emmake make VERBOSE=1 -j$(nproc) -r \
             EMULATOR=0 \
             TOOLS=1 \
@@ -121,7 +124,6 @@ jobs:
             NO_USE_XINPUT=1 \
             NO_SOUND=1 \
             USE_QTDEBUG=0 \
-            LDFLAGS="$LINK_FLAGS" \
             asmjs 2>&1 | tee build.log
       - name: Upload build log (sempre, mesmo em falha)
         if: always()
