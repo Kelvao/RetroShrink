@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       mame_ref:
-        description: 'MAME GitHub branch, tag, or SHA (e.g. "mame0288")'
+        description: 'MAME branch, tag ou SHA (ex: mame0288)'
         required: true
         type: string
         default: 'mame0288'
@@ -22,20 +22,6 @@ permissions:
   contents: write
   pull-requests: write
 
-env:
-  MAME_REF: ${{ inputs.mame_ref || 'mame0288' }}
-  EMSDK_VERSION: ${{ inputs.emsdk_version || '3.0.0' }}
-  EMULATOR: 0
-  TOOLS: 1
-  TESTS: 0
-  IGNORE_GIT: 1
-  NOWERROR: 1
-  DEBUG: 0
-  SYMBOLS: 0
-  OPTIMIZE: s
-  NOASM: 1
-  NO_SOUND: 0
-
 jobs:
   build-wasm:
     name: build chdman.wasm
@@ -46,7 +32,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: mamedev/mame
-          ref: ${{ env.MAME_REF }}
+          ref: ${{ inputs.mame_ref }}
 
       - name: Install system dependencies
         run: |
@@ -66,33 +52,30 @@ jobs:
             rapidjson-dev
 
       - name: Setup Emscripten SDK
-        uses: mymindstorm/setup-emsdk@v16
+        uses: emscripten-core/setup-emsdk@v15
         with:
-          version: ${{ env.EMSDK_VERSION }}
+          version: ${{ inputs.emsdk_version }}
           no-cache: true
 
       - name: Verify emcc
         run: emcc --version
 
-      - name: Build Emscripten ports (zlib, libjpeg, sqlite3)
-        run: |
-          embuilder build zlib libjpeg sqlite3
+      - name: Build Emscripten ports
+        run: embuilder build zlib libjpeg sqlite3
 
       - name: Build chdman WASM
-        env:
-          EMSCRIPTEN: ${{ env.EMSDK_EMSDK_PATH }}
         run: |
-          set -o pipefail
-          emmake make VERBOSE=1 -j1 -r \
-            EMULATOR=${{ env.EMULATOR }} \
-            TOOLS=${{ env.TOOLS }} \
-            TESTS=${{ env.TESTS }} \
-            IGNORE_GIT=${{ env.IGNORE_GIT }} \
-            NOWERROR=${{ env.NOWERROR }} \
-            DEBUG=${{ env.DEBUG }} \
-            SYMBOLS=${{ env.SYMBOLS }} \
-            OPTIMIZE=${{ env.OPTIMIZE }} \
-            NOASM=${{ env.NOASM }} \
+          set -euo pipefail
+          emmake make VERBOSE=1 -j$(nproc) -r \
+            EMULATOR=0 \
+            TOOLS=1 \
+            TESTS=0 \
+            IGNORE_GIT=1 \
+            NOWERROR=1 \
+            DEBUG=0 \
+            SYMBOLS=0 \
+            OPTIMIZE=s \
+            NOASM=1 \
             NO_USE_MIDI=1 \
             NO_USE_PORTAUDIO=1 \
             NO_USE_PULSEAUDIO=1 \
@@ -101,64 +84,73 @@ jobs:
             NO_USE_XINPUT=1 \
             NO_SOUND=1 \
             USE_QTDEBUG=0 \
-            WEBASSEMBLY=1 \
-            ARCHOPTS='-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s FORCE_FILESYSTEM=1 -s MODULARIZE=1 -s EXPORT_NAME=ChdmanModule -s EXPORTED_RUNTIME_METHODS=["FS","callMain"] -s EXIT_RUNTIME=0 -s ERROR_ON_UNDEFINED_SYMBOLS=0 -s EXCEPTION_CATCHING_ALLOWED=["instantiateArrayBuffer","instantiateAsync","createWasm"] -O2' \
-            TARGET=chdman SUBTARGET=chdman asmjs 2>&1 | tee asmjs-build.log
+            "ARCHOPTS=-sWASM=1 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sMODULARIZE=1 -sEXPORT_NAME=ChdmanModule -sEXPORTED_RUNTIME_METHODS=[\"FS\",\"callMain\"] -sEXIT_RUNTIME=0 -sERROR_ON_UNDEFINED_SYMBOLS=0 -O2" \
+            asmjs 2>&1 | tee build.log
 
-      - name: Upload asmjs build log
+      - name: Upload build log (sempre, mesmo em falha)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: asmjs-build-log-${{ env.MAME_REF }}-${{ github.sha }}
-          path: asmjs-build.log
+          name: build-log-${{ inputs.mame_ref }}-${{ github.run_id }}
+          path: build.log
           if-no-files-found: warn
 
-      - name: Locate build artifacts
-        id: locate
+      - name: Localizar artefatos gerados
         run: |
-          echo "Listing root build outputs:"
-          ls -lh *.js *.wasm 2>/dev/null || true
-          find build/ -name "chdman*" 2>/dev/null || true
+          echo "=== root ==="
+          ls -lh *.js *.wasm 2>/dev/null || echo "(nenhum na raiz)"
+          echo "=== build/ ==="
+          find build/ -name "chdman*" 2>/dev/null || echo "(nenhum em build/)"
+          echo "=== build/asmjs/ ==="
+          find build/asmjs* -type f 2>/dev/null | head -30 || echo "(dir nao encontrado)"
 
-      - name: Collect WASM artifacts
+      - name: Coletar artefatos
         run: |
-          find . -maxdepth 3 \( -name "chdman.js" -o -name "chdman.wasm" \) -exec cp {} public/ \; 
-          ls -lh public/chdman.*
+          mkdir -p public
+          found=$(find . -maxdepth 6 \( -name "chdman.js" -o -name "chdman.wasm" \) 2>/dev/null)
+          if [ -z "$found" ]; then
+            echo "ERRO: chdman.js / chdman.wasm nao encontrados"
+            exit 1
+          fi
+          echo "$found" | xargs -I{} cp {} public/
+          echo "=== Coletados ==="
+          ls -lh public/
 
-      - name: Smoke test (node)
+      - name: Smoke test (Node)
         run: |
           node -e "
-            const ChdmanModule = require('./public/chdman.js');
-            ChdmanModule().then(m => {
-              console.log('WASM module loaded OK');
-              console.log('FS available:', typeof m.FS !== 'undefined');
-            });
+            const Module = require('./public/chdman.js');
+            Module().then(m => {
+              if (typeof m.FS === 'undefined') throw new Error('FS nao disponivel');
+              if (typeof m.callMain === 'undefined') throw new Error('callMain nao disponivel');
+              console.log('OK: WASM carregado, FS e callMain disponiveis');
+            }).catch(e => { console.error(e); process.exit(1); });
           "
 
-      - name: Upload WASM artifacts
+      - name: Upload artefatos WASM
         uses: actions/upload-artifact@v4
         with:
-          name: chdman-wasm-${{ env.MAME_REF }}-${{ github.sha }}
+          name: chdman-wasm-${{ inputs.mame_ref }}-${{ github.run_id }}
           path: public/chdman.*
           if-no-files-found: error
 
-      - name: Create PR with built artifacts
-        uses: peter-evans/create-pull-request@v5
+      - name: Abrir PR com os artefatos
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: build/chdman-wasm-${{ github.sha }}
-          title: "Add chdman WASM artifacts for MAME ref ${{ env.MAME_REF }}"
+          branch: build/chdman-wasm-${{ github.run_id }}
+          title: "build: chdman WASM para ${{ inputs.mame_ref }}"
           body: |
-            This PR includes the generated `chdman` WebAssembly artifacts from the MAME build reference `${{ env.MAME_REF }}`.
+            Artefatos `chdman.js` e `chdman.wasm` gerados automaticamente.
 
-            - Workflow: `${{ github.workflow }}`
-            - SHA: `${{ github.sha }}`
-            - Artifact path: `public/`
-
-            The build artifacts are committed so the PR can be reviewed and downloaded directly from the branch.
-          commit-message: "Add chdman WASM artifacts for MAME ref ${{ env.MAME_REF }}"
+            | Campo | Valor |
+            |---|---|
+            | MAME ref | `${{ inputs.mame_ref }}` |
+            | Emscripten | `${{ inputs.emsdk_version }}` |
+            | Run | `${{ github.run_id }}` |
+          commit-message: "build: chdman WASM para ${{ inputs.mame_ref }}"
+          add-paths: public/chdman.*
           delete-branch: true
 
-      - name: Print artifact sizes
-        run: |
-          echo "=== Build output sizes ==="
-          du -sh public/chdman.*
+      - name: Tamanhos finais
+        run: du -sh public/chdman.*
