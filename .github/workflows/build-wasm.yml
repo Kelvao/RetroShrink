@@ -81,6 +81,18 @@ jobs:
           grep -rn "sound_manager" scripts/ || echo "(nenhum - patch OK)"
 
       - name: Build chdman WASM
+        env:
+          EMCC_CFLAGS: >-
+            -sWASM=1
+            -sALLOW_MEMORY_GROWTH=1
+            -sFORCE_FILESYSTEM=1
+            -sMODULARIZE=1
+            -sEXPORT_NAME=ChdmanModule
+            -sEXPORTED_RUNTIME_METHODS=FS,callMain
+            -sEXIT_RUNTIME=0
+            -sERROR_ON_UNDEFINED_SYMBOLS=0
+            -sWARN_ON_UNDEFINED_SYMBOLS=0
+            -O2
         run: |
           set -euo pipefail
           emmake make VERBOSE=1 -j$(nproc) -r \
@@ -101,12 +113,10 @@ jobs:
             NO_USE_XINPUT=1 \
             NO_SOUND=1 \
             USE_QTDEBUG=0 \
-            "ARCHOPTS=-sWASM=1 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sMODULARIZE=1 -sEXPORT_NAME=ChdmanModule -sEXPORTED_RUNTIME_METHODS=[\"FS\",\"callMain\"] -sEXIT_RUNTIME=0 -sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -O2" \
             asmjs 2>&1 | tee build.log
-
       - name: Upload build log (sempre, mesmo em falha)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build-log-${{ inputs.mame_ref }}-${{ github.run_id }}
           path: build.log
@@ -145,7 +155,7 @@ jobs:
           "
 
       - name: Upload artefatos WASM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: chdman-wasm-${{ inputs.mame_ref }}-${{ github.run_id }}
           path: public/chdman.*
