@@ -24,7 +24,7 @@ permissions:
 
 env:
   MAME_REF: ${{ inputs.mame_ref || 'mame0288' }}
-  EMSDK_VERSION: ${{ inputs.emsdk_version || '3.1.74' }}
+  EMSDK_VERSION: ${{ inputs.emsdk_version || '3.0.0' }}
   EMULATOR: 0
   TOOLS: 1
   TESTS: 0
@@ -99,9 +99,10 @@ jobs:
             NO_USE_PIPEWIRE=1 \
             NO_X11=1 \
             NO_USE_XINPUT=1 \
-            NO_SOUND=${{ env.NO_SOUND }} \
+            NO_SOUND=1 \
             USE_QTDEBUG=0 \
-            ARCHOPTS='-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s FORCE_FILESYSTEM=1 -s MODULARIZE=1 -s EXPORT_NAME=ChdmanModule -s EXPORTED_RUNTIME_METHODS=["FS","callMain"] -s EXIT_RUNTIME=0 -s ERROR_ON_UNDEFINED_SYMBOLS=0 -O2' \
+            WEBASSEMBLY=1 \
+            ARCHOPTS='-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s FORCE_FILESYSTEM=1 -s MODULARIZE=1 -s EXPORT_NAME=ChdmanModule -s EXPORTED_RUNTIME_METHODS=["FS","callMain"] -s EXIT_RUNTIME=0 -s ERROR_ON_UNDEFINED_SYMBOLS=0 -s EXCEPTION_CATCHING_ALLOWED=["instantiateArrayBuffer","instantiateAsync","createWasm"] -O2' \
             TARGET=chdman SUBTARGET=chdman asmjs 2>&1 | tee asmjs-build.log
 
       - name: Upload asmjs build log
