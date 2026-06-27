@@ -63,6 +63,23 @@ jobs:
       - name: Build Emscripten ports
         run: embuilder build zlib libjpeg sqlite3
 
+      - name: Patch MAME - remover sound_manager do EXCEPTION_CATCHING_ALLOWED
+        run: |
+          # sound_manager::mute nao existe com NO_SOUND=1 e quebra o link do Emscripten.
+          # Remove o simbolo de todos os arquivos .lua de scripts do MAME.
+          echo "=== Antes do patch ==="
+          grep -rn "sound_manager" scripts/ || true
+
+          find scripts/ -name "*.lua" | xargs sed -i \
+            "s/'_ZN13sound_manager[^']*',\?//g" 2>/dev/null || true
+
+          # Limpar virgulas duplicadas ou vazias que possam ter sobrado
+          find scripts/ -name "*.lua" | xargs sed -i \
+            "s/,\s*,/,/g" 2>/dev/null || true
+
+          echo "=== Depois do patch ==="
+          grep -rn "sound_manager" scripts/ || echo "(nenhum - patch OK)"
+
       - name: Build chdman WASM
         run: |
           set -euo pipefail
@@ -84,7 +101,7 @@ jobs:
             NO_USE_XINPUT=1 \
             NO_SOUND=1 \
             USE_QTDEBUG=0 \
-            "ARCHOPTS=-sWASM=1 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sMODULARIZE=1 -sEXPORT_NAME=ChdmanModule -sEXPORTED_RUNTIME_METHODS=[\"FS\",\"callMain\"] -sEXIT_RUNTIME=0 -sERROR_ON_UNDEFINED_SYMBOLS=0 -O2" \
+            "ARCHOPTS=-sWASM=1 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sMODULARIZE=1 -sEXPORT_NAME=ChdmanModule -sEXPORTED_RUNTIME_METHODS=[\"FS\",\"callMain\"] -sEXIT_RUNTIME=0 -sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -O2" \
             asmjs 2>&1 | tee build.log
 
       - name: Upload build log (sempre, mesmo em falha)
@@ -99,10 +116,10 @@ jobs:
         run: |
           echo "=== root ==="
           ls -lh *.js *.wasm 2>/dev/null || echo "(nenhum na raiz)"
-          echo "=== build/ ==="
-          find build/ -name "chdman*" 2>/dev/null || echo "(nenhum em build/)"
-          echo "=== build/asmjs/ ==="
-          find build/asmjs* -type f 2>/dev/null | head -30 || echo "(dir nao encontrado)"
+          echo "=== build/asmjs* ==="
+          find build/asmjs* -type f -name "chdman*" 2>/dev/null || echo "(nenhum)"
+          echo "=== busca geral ==="
+          find . -maxdepth 6 \( -name "chdman.js" -o -name "chdman.wasm" \) 2>/dev/null || echo "(nenhum)"
 
       - name: Coletar artefatos
         run: |
