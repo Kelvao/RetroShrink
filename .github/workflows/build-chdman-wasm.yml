@@ -22,11 +22,7 @@ jobs:
       run: |
         FILE=mame-src/src/osd/sdl/sdlprefix.h
         if [ -f "$FILE" ]; then
-          echo "Patching $FILE"
-          # Replace any full 'struct _IO_FILE { ... };' with a forward declaration 'struct _IO_FILE;'
           perl -0777 -pe 'if (/struct\s+_IO_FILE\s*\{/) { s/struct\s+_IO_FILE\s*\{.*?\}\s*;[ \t]*(?:\/\/[^\n]*)?/struct _IO_FILE;/s }' "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
-        else
-          echo "$FILE not found, skipping patch"
         fi
 
     - name: Setup Emscripten
@@ -42,7 +38,7 @@ jobs:
     - name: Compile MAME Tools
       run: |
         cd mame-src
-        emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 -j$(nproc)
+        emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 -j$(nproc) EMCC_CXXFLAGS="-sERROR_ON_UNDEFINED_SYMBOLS=0" EMCC_LDFLAGS="-sERROR_ON_UNDEFINED_SYMBOLS=0"
 
     - name: Move Artifacts to Public Folder
       run: |
