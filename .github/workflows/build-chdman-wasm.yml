@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - name: Checkout Your Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4.2.0
 
     - name: Clone MAME Source
       run: git clone --depth 1 https://github.com/mamedev/mame.git mame-src
@@ -24,6 +24,7 @@ jobs:
         if [ -f "$FILE" ]; then
           perl -0777 -pe 'if (/struct\s+_IO_FILE\s*\{/) { s/struct\s+_IO_FILE\s*\{.*?\}\s*;[ \t]*(?:\/\/[^\n]*)?/struct _IO_FILE;/s }' "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
         fi
+
 
     - name: Setup Emscripten
       uses: mymindstorm/setup-emsdk@v14
@@ -38,7 +39,7 @@ jobs:
     - name: Compile MAME Tools
       run: |
         cd mame-src
-        emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 -j$(nproc) EMCC_CXXFLAGS="-sERROR_ON_UNDEFINED_SYMBOLS=0" EMCC_LDFLAGS="-sERROR_ON_UNDEFINED_SYMBOLS=0"
+        emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 -j$(nproc) EMCC_CXXFLAGS="-sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0" EMCC_LDFLAGS="-sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0"
 
     - name: Move Artifacts to Public Folder
       run: |
