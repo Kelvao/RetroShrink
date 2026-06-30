@@ -31,7 +31,8 @@ jobs:
     - name: Compile MAME Tools
       run: |
         cd mame-src
-        emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 -j$(nproc)
+        timeout 30s emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 -j$(nproc) || true
+        emmake make -R -C build/projects/sdl/mame/gmake-asmjs -f chdman.make config=release -j$(nproc)
 
     - name: Move Artifacts to Public Folder
       run: |
