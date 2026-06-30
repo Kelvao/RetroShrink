@@ -13,13 +13,13 @@ jobs:
 
     steps:
     - name: Checkout Your Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4.2.2
 
     - name: Clone MAME Source
       run: git clone --depth 1 https://github.com/mamedev/mame.git mame-src
 
     - name: Setup Emscripten
-      uses: mymindstorm/setup-emsdk@v15
+      uses: mymindstorm/setup-emsdk@v14
       with:
         version: 'latest'
 
@@ -47,22 +47,44 @@ jobs:
           sed -i 's/ERROR_ON_UNDEFINED_SYMBOLS=true/ERROR_ON_UNDEFINED_SYMBOLS=false/g' "$MAKEFILE_PATH"
           sed -i '/EXPORTED_FUNCTIONS/d' "$MAKEFILE_PATH"
           sed -i '/DEFAULT_LIBRARY_FUNCS_TO_INCLUDE/d' "$MAKEFILE_PATH"
-          sed -i 's|ALL_LDFLAGS += |ALL_LDFLAGS += -sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -Wno-error=undefined |g' "$MAKEFILE_PATH"
         else
+          echo "Erro: chdman.make nao foi gerado pelo genie." >&2
           exit 1
         fi
 
+        export EMMAKEN_CFLAGS="-sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -Wno-error=undefined"
         emmake make -R -C build/projects/sdl/mame/gmake-asmjs -f chdman.make config=release -j$(nproc)
 
-    - name: Move Artifacts to Public Folder
+    - name: Validate and Move Artifacts
       run: |
         mkdir -p public
-        find mame-src/ -name "chdman.js" -exec cp {} public/ \;
-        find mame-src/ -name "chdman.wasm" -exec cp {} public/ \;
+        
+        CRU_FILE=$(find mame-src/ -name "chdman" -type f | grep -v "\.git" | head -n 1)
+        if [ -n "$CRU_FILE" ] && [ -f "$CRU_FILE" ]; then
+          echo "Detectado arquivo js sem extensão em: $CRU_FILE. Renomeando para .js..."
+          mv "$CRU_FILE" "${CRU_FILE}.js"
+        fi
+
+        JS_FILE=$(find mame-src/ -name "chdman.js" | head -n 1)
+        WASM_FILE=$(find mame-src/ -name "chdman.wasm" | head -n 1)
+
+        if [ -z "$JS_FILE" ] || [ ! -f "$JS_FILE" ]; then
+          echo "Erro estrito: chdman.js NAO foi encontrado!" >&2
+          exit 1
+        fi
+
+        if [ -z "$WASM_FILE" ] || [ ! -f "$WASM_FILE" ]; then
+          echo "Erro estrito: chdman.wasm NAO foi encontrado!" >&2
+          exit 1
+        fi
+
+        cp "$JS_FILE" public/
+        cp "$WASM_FILE" public/
+        
         rm -rf mame-src
 
     - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v6
+      uses: peter-evans/create-pull-request@v7
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: "feat: update chdman wasm binaries in public/"
