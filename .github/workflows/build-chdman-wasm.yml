@@ -39,11 +39,11 @@ jobs:
       run: |
         cd mame-src
         
-        # Primeiro compila o gerador GENie
+        # 1) Compila a ferramenta do GENie primeiro
         emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 genie
         
-        # Agora força o GENie a processar os scripts de build do alvo focado no chdman
-        emmake make WEBASSEMBLY=1 TOOLS=1 SUBTARGET=chdman NOWERROR=1 scripts
+        # 2) Dispara a geração dos Makefiles específicos do projeto chamando o alvo do makefile do MAME
+        emmake make WEBASSEMBLY=1 TOOLS=1 SUBTARGET=chdman NOWERROR=1 makefile
 
         MAKEFILE_PATH="build/projects/sdl/mame/gmake-asmjs/chdman.make"
         if [ -f "$MAKEFILE_PATH" ]; then
@@ -53,7 +53,7 @@ jobs:
           sed -i '/EXPORTED_FUNCTIONS/d' "$MAKEFILE_PATH"
           sed -i '/DEFAULT_LIBRARY_FUNCS_TO_INCLUDE/d' "$MAKEFILE_PATH"
         else
-          echo "Erro crítico: chdman.make nao foi gerado pelo comando scripts do MAME." >&2
+          echo "Erro crítico: chdman.make nao foi encontrado em $MAKEFILE_PATH" >&2
           exit 1
         fi
 
