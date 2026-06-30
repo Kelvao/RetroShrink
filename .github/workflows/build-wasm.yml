@@ -66,16 +66,6 @@ jobs:
       - name: Patch MAME - remover sound_manager do EXCEPTION_CATCHING_ALLOWED
         run: |
           set -euo pipefail
-          # sound_manager::mute nao existe com NO_SOUND=1 e quebra o link do Emscripten.
-          # Remove o simbolo, mas APENAS dos arquivos .lua que de fato o mencionam.
-          #
-          # IMPORTANTE: o sed de limpeza de virgulas duplas (",,") nao pode rodar em
-          # todos os .lua, pois scripts/genie.lua usa ",," de proposito em chamadas
-          # legitimas como $(subst ../,,$<) (3 argumentos: from='../', to='', text=$<).
-          # Rodar a limpeza nesse arquivo colapsa para $(subst ../,$<) (2 argumentos)
-          # e quebra a geracao do precompile.make com:
-          #   "insufficient number of arguments (2) to function 'subst'"
-          # Por isso restringimos o patch apenas aos arquivos que continham sound_manager.
 
           echo "=== Antes do patch ==="
           grep -rln "sound_manager" scripts/ --include="*.lua" || true
@@ -83,10 +73,9 @@ jobs:
           FILES=$(grep -rl "sound_manager" scripts/ --include="*.lua" || true)
 
           if [ -n "$FILES" ]; then
-            echo "$FILES" | xargs sed -i "s/'_ZN13sound_manager[^']*',\?//g"
-            # Limpa virgulas duplicadas ou vazias que possam ter sobrado,
-            # somente nos arquivos que sofreram a remocao acima.
-            echo "$FILES" | xargs sed -i "s/,\s*,/,/g"
+            echo "$FILES" | xargs sed -i -E "s/'_ZN13sound_manager[^']*'\s*,\s*//g"
+            echo "$FILES" | xargs sed -i -E "s/,\s*'_ZN13sound_manager[^']*'//g"
+            echo "$FILES" | xargs sed -i -E "s/'_ZN13sound_manager[^']*'//g"
           else
             echo "Nenhum arquivo com sound_manager encontrado - nada a fazer"
           fi
@@ -94,24 +83,15 @@ jobs:
           echo "=== Depois do patch ==="
           grep -rln "sound_manager" scripts/ --include="*.lua" || echo "(nenhum - patch OK)"
 
-          echo "=== Verificacao de sanidade: genie.lua intacto ==="
-          grep -n '\$(subst \.\./,,\$<)' scripts/genie.lua || {
-            echo "ERRO: genie.lua nao contem mais o padrao esperado \$(subst ../,,\$<) - patch corrompeu o arquivo!"
-            exit 1
-          }
+          grep -n '\$(subst \.\./,,\$<)' scripts/genie.lua
 
       - name: Pre-build genie com gcc nativo
         run: |
-          # O MAME compila o genie (ferramenta de build interna) com gcc antes de usar emcc.
-          # Qualquer variavel no ambiente com flags emcc quebra o gcc nessa etapa.
-          # Compilamos o genie separadamente aqui, com ambiente limpo.
           make -j$(nproc) -r -C 3rdparty/genie/build/gmake.linux -f genie.make
 
       - name: Gerar Makefiles (genie) com ambiente limpo
         run: |
           set -euo pipefail
-          # Gera os .make SEM EMCC_CFLAGS no ambiente - export contamina a
-          # geracao do genie e quebra $(subst ../,,$<) -> $(subst ../,$<)
           unset EMCC_CFLAGS EMCC_LDFLAGS || true
           emmake make -j$(nproc) -r \
             EMULATOR=0 TOOLS=1 TESTS=0 \
@@ -126,8 +106,6 @@ jobs:
       - name: Build chdman WASM
         run: |
           set +e
-          # EMCC_CFLAGS so existe neste processo (nao usa export) - nao
-          # contamina nenhuma regeracao acidental de Makefiles pelo genie.
           EMCC_CFLAGS="-sWASM=1 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sMODULARIZE=1 -sEXPORT_NAME=ChdmanModule -sEXPORTED_RUNTIME_METHODS=FS,callMain -sEXIT_RUNTIME=0 -sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -O2" \
           emmake make VERBOSE=1 -j$(nproc) -r \
             EMULATOR=0 TOOLS=1 TESTS=0 \
