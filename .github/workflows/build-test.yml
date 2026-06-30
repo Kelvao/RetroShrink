@@ -31,7 +31,7 @@ jobs:
     - name: Compile MAME Tools
       run: |
         cd mame-src
-        emmake make WEBASSEMBLY=1 tools NOWERROR=1 -j$(nproc)
+        emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 -j$(nproc)
 
     - name: Move Artifacts to Public Folder
       run: |
