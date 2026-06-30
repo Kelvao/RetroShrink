@@ -18,6 +18,17 @@ jobs:
     - name: Clone MAME Source
       run: git clone --depth 1 https://github.com/mamedev/mame.git mame-src
 
+    - name: Patch _IO_FILE in sdlprefix.h for Emscripten
+      run: |
+        FILE=mame-src/src/osd/sdl/sdlprefix.h
+        if [ -f "$FILE" ]; then
+          echo "Patching $FILE"
+          # Replace any full 'struct _IO_FILE { ... };' with a forward declaration 'struct _IO_FILE;'
+          perl -0777 -pe 'if (/struct\s+_IO_FILE\s*\{/) { s/struct\s+_IO_FILE\s*\{.*?\}\s*;[ \t]*(?:\/\/[^\n]*)?/struct _IO_FILE;/s }' "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
+        else
+          echo "$FILE not found, skipping patch"
+        fi
+
     - name: Setup Emscripten
       uses: mymindstorm/setup-emsdk@v14
       with:
