@@ -89,20 +89,10 @@ jobs:
 
       - name: Build chdman WASM
         run: |
-          set -euo pipefail
+          set +e
 
-          # Ensure MAME sees the installed Emscripten SDK.
-          export EMSCRIPTEN="$(dirname "$(dirname "$(realpath "$(command -v emcc)")")")"
-          export EMCC="$(command -v emcc)"
-          export EMXX="$(command -v em++)"
-          export EMAR="$(command -v emar)"
+          export EMCC_CFLAGS="-sWASM=1 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sMODULARIZE=1 -sEXPORT_NAME=ChdmanModule -sEXPORTED_RUNTIME_METHODS=FS,callMain -sEXIT_RUNTIME=0 -sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -O2"
 
-          echo "EMSCRIPTEN=$EMSCRIPTEN"
-          echo "EMCC=$EMCC"
-          echo "EMXX=$EMXX"
-          echo "EMAR=$EMAR"
-
-          # Compile directly to asmjs/WebAssembly using the generated build files.
           emmake make VERBOSE=1 -j$(nproc) -r \
             EMULATOR=0 TOOLS=1 TESTS=0 \
             IGNORE_GIT=1 NOWERROR=1 \
@@ -111,9 +101,14 @@ jobs:
             NO_USE_PULSEAUDIO=1 NO_USE_PIPEWIRE=1 \
             NO_X11=1 NO_USE_XINPUT=1 NO_SOUND=1 \
             USE_QTDEBUG=0 \
-            TARGET=chdman SUBTARGET=chdman \
-            ARCHOPTS='-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s FORCE_FILESYSTEM=1 -s MODULARIZE=1 -s EXPORT_NAME=ChdmanModule -s EXPORTED_RUNTIME_METHODS=["FS","callMain"] -s EXIT_RUNTIME=0 -O2' \
             asmjs 2>&1 | tee build.log
+
+          STATUS=${PIPESTATUS[0]}
+
+          echo "=== precompile.make linha 310-330 (se existir) ===" | tee -a build.log
+          find . -name "precompile.make" -exec sed -n '310,330p' {} \; 2>/dev/null | tee -a build.log
+
+          exit $STATUS
       - name: Upload build log (sempre, mesmo em falha)
         if: always()
         uses: actions/upload-artifact@v6
