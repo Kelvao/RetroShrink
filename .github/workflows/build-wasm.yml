@@ -87,12 +87,28 @@ jobs:
           # Compilamos o genie separadamente aqui, com ambiente limpo.
           make -j$(nproc) -r -C 3rdparty/genie/build/gmake.linux -f genie.make
 
+      - name: Gerar Makefiles (genie) com ambiente limpo
+        run: |
+          set -euo pipefail
+          # Gera os .make SEM EMCC_CFLAGS no ambiente - export contamina a
+          # geracao do genie e quebra $(subst ../,,$<) -> $(subst ../,$<)
+          unset EMCC_CFLAGS EMCC_LDFLAGS || true
+          emmake make -j$(nproc) -r \
+            EMULATOR=0 TOOLS=1 TESTS=0 \
+            IGNORE_GIT=1 NOWERROR=1 \
+            DEBUG=0 SYMBOLS=0 OPTIMIZE=s NOASM=1 \
+            NO_USE_MIDI=1 NO_USE_PORTAUDIO=1 \
+            NO_USE_PULSEAUDIO=1 NO_USE_PIPEWIRE=1 \
+            NO_X11=1 NO_USE_XINPUT=1 NO_SOUND=1 \
+            USE_QTDEBUG=0 \
+            generate 2>&1 | tee genie-generate.log
+
       - name: Build chdman WASM
         run: |
           set +e
-
-          export EMCC_CFLAGS="-sWASM=1 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sMODULARIZE=1 -sEXPORT_NAME=ChdmanModule -sEXPORTED_RUNTIME_METHODS=FS,callMain -sEXIT_RUNTIME=0 -sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -O2"
-
+          # EMCC_CFLAGS so existe neste processo (nao usa export) - nao
+          # contamina nenhuma regeracao acidental de Makefiles pelo genie.
+          EMCC_CFLAGS="-sWASM=1 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1 -sMODULARIZE=1 -sEXPORT_NAME=ChdmanModule -sEXPORTED_RUNTIME_METHODS=FS,callMain -sEXIT_RUNTIME=0 -sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -O2" \
           emmake make VERBOSE=1 -j$(nproc) -r \
             EMULATOR=0 TOOLS=1 TESTS=0 \
             IGNORE_GIT=1 NOWERROR=1 \
