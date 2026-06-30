@@ -13,21 +13,13 @@ jobs:
 
     steps:
     - name: Checkout Your Repository
-      uses: actions/checkout@v4.2.0
+      uses: actions/checkout@v4
 
     - name: Clone MAME Source
       run: git clone --depth 1 https://github.com/mamedev/mame.git mame-src
 
-    - name: Patch _IO_FILE in sdlprefix.h for Emscripten
-      run: |
-        FILE=mame-src/src/osd/sdl/sdlprefix.h
-        if [ -f "$FILE" ]; then
-          perl -0777 -pe 'if (/struct\s+_IO_FILE\s*\{/) { s/struct\s+_IO_FILE\s*\{.*?\}\s*;[ \t]*(?:\/\/[^\n]*)?/struct _IO_FILE;/s }' "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
-        fi
-
-
     - name: Setup Emscripten
-      uses: mymindstorm/setup-emsdk@v14
+      uses: mymindstorm/setup-emsdk@v15
       with:
         version: 'latest'
 
@@ -36,10 +28,31 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential python3 libsdl2-dev libsdl2-ttf-dev libfontconfig1-dev
 
+    - name: Patch sdlprefix.h
+      run: |
+        FILE="mame-src/src/osd/sdl/sdlprefix.h"
+        if [ -f "$FILE" ]; then
+          perl -0777 -pe 'if (/struct\s+_IO_FILE\s*\{/) { s/struct\s+_IO_FILE\s*\{.*?\}\s*;[ \t]*(?:\/\/[^\n]*)?/struct _IO_FILE;/s }' "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
+        fi
+
     - name: Compile MAME Tools
       run: |
         cd mame-src
-        emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 -j$(nproc) EMCC_CXXFLAGS="-sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0" EMCC_LDFLAGS="-sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0"
+        emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 genie
+
+        MAKEFILE_PATH="build/projects/sdl/mame/gmake-asmjs/chdman.make"
+        if [ -f "$MAKEFILE_PATH" ]; then
+          sed -i 's/-Werror//g' "$MAKEFILE_PATH"
+          sed -i 's/ERROR_ON_UNDEFINED_SYMBOLS=1/ERROR_ON_UNDEFINED_SYMBOLS=0/g' "$MAKEFILE_PATH"
+          sed -i 's/ERROR_ON_UNDEFINED_SYMBOLS=true/ERROR_ON_UNDEFINED_SYMBOLS=false/g' "$MAKEFILE_PATH"
+          sed -i '/EXPORTED_FUNCTIONS/d' "$MAKEFILE_PATH"
+          sed -i '/DEFAULT_LIBRARY_FUNCS_TO_INCLUDE/d' "$MAKEFILE_PATH"
+          sed -i 's|ALL_LDFLAGS += |ALL_LDFLAGS += -sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -Wno-error=undefined |g' "$MAKEFILE_PATH"
+        else
+          exit 1
+        fi
+
+        emmake make -R -C build/projects/sdl/mame/gmake-asmjs -f chdman.make config=release -j$(nproc)
 
     - name: Move Artifacts to Public Folder
       run: |
