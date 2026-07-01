@@ -111,6 +111,10 @@ jobs:
         run: |
           mkdir -p public
           TARGET_BIN_DIR="mame-src/build/projects/sdl/mame/gmake-asmjs/bin/asmjs/release"
+
+          echo "Conteúdo de $TARGET_BIN_DIR (debug):"
+          find "$TARGET_BIN_DIR" -maxdepth 1 2>&1 || echo "(diretório não existe)"
+
           if [ -f "$TARGET_BIN_DIR/chdman" ] && [ ! -f "$TARGET_BIN_DIR/chdman.js" ]; then
             mv "$TARGET_BIN_DIR/chdman" "$TARGET_BIN_DIR/chdman.js"
           fi
@@ -119,11 +123,15 @@ jobs:
           WASM_FILE=$(find mame-src -name "chdman.wasm" | head -n 1)
 
           if [ -z "$JS_FILE" ] || [ ! -f "$JS_FILE" ]; then
-            echo "Erro: chdman.js NÃO foi gerado pelo compilador!" >&2
+            echo "Erro: chdman.js NÃO foi encontrado no local esperado." >&2
+            echo "Buscando qualquer arquivo chamado 'chdman*' em todo mame-src/build (debug):" >&2
+            find mame-src/build -iname "chdman*" 2>&1 >&2
             exit 1
           fi
           if [ -z "$WASM_FILE" ] || [ ! -f "$WASM_FILE" ]; then
-            echo "Erro: chdman.wasm NÃO foi gerado pelo compilador!" >&2
+            echo "Erro: chdman.wasm NÃO foi encontrado no local esperado." >&2
+            echo "Buscando qualquer arquivo chamado 'chdman*' em todo mame-src/build (debug):" >&2
+            find mame-src/build -iname "chdman*" 2>&1 >&2
             exit 1
           fi
 
