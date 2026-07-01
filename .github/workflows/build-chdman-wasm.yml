@@ -78,6 +78,9 @@ jobs:
           source emsdk/emsdk_env.sh
           export EMSCRIPTEN="$(pwd)/emsdk/upstream/emscripten"
           cd mame-src
+          # "generate" cria os fontes gerados (generated/version.cpp, git_desc,
+          # layouts .lh, traduções .mo) — necessário antes de compilar.
+          emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 generate
           # NOTA: o target "genie" do MAME só compila o binário do GENie,
           # NÃO gera os .make de projeto. Quem gera é o Makefile do diretório
           # do target real (aqui pedido explicitamente como alvo).
