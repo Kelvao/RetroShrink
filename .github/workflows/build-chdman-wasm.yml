@@ -1,99 +1,131 @@
-name: Build and PR CHDMAN WASM
+name: Build chdman.wasm
 
 on:
   workflow_dispatch:
-
-permissions:
-  contents: write
-  pull-requests: write
+    inputs:
+      emsdk_version:
+        description: 'Versão do emsdk (ex: latest, 3.1.64)'
+        required: true
+        default: 'latest'
+        type: string
+      mame_ref:
+        description: 'Branch/tag/commit do MAME'
+        required: true
+        default: 'master'
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-chdman-wasm.yml'
 
 jobs:
-  build-and-pr:
+  build:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      EMSDK_VERSION: ${{ github.event.inputs.emsdk_version || 'latest' }}
+      MAME_REF: ${{ github.event.inputs.mame_ref || 'master' }}
 
     steps:
-    - name: Checkout Your Repository
-      uses: actions/checkout@v4.2.2
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
 
-    - name: Clone MAME Source
-      run: git clone --depth 1 https://github.com/mamedev/mame.git mame-src
+      - name: Instalar dependências (apt)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3 libsdl2-dev libsdl2-ttf-dev libfontconfig1-dev
 
-    - name: Setup Emscripten
-      uses: mymindstorm/setup-emsdk@v14
-      with:
-        version: 'latest'
+      - name: Clonar MAME
+        run: |
+          if git clone --depth 1 --branch "$MAME_REF" https://github.com/mamedev/mame.git mame-src 2>/dev/null; then
+            echo "Clone raso (branch/tag) ok."
+          else
+            echo "Branch/tag não encontrado via clone raso, tentando como commit SHA..."
+            git clone https://github.com/mamedev/mame.git mame-src
+            cd mame-src
+            git checkout "$MAME_REF"
+          fi
 
-    - name: Install Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential python3 libsdl2-dev libsdl2-ttf-dev libfontconfig1-dev
+      - name: Patch sdlprefix.h (struct _IO_FILE)
+        run: |
+          FILE="mame-src/src/osd/sdl/sdlprefix.h"
+          if [ -f "$FILE" ]; then
+            perl -0777 -pe 'if (/struct\s+_IO_FILE\s*\{/) { s/struct\s+_IO_FILE\s*\{.*?\}\s*;[ \t]*(?:\/\/[^\n]*)?/struct _IO_FILE;/s }' "$FILE" > "$FILE.tmp"
+            mv "$FILE.tmp" "$FILE"
+          else
+            echo "Aviso: $FILE não existe (continuando)..."
+          fi
 
-    - name: Patch sdlprefix.h
-      run: |
-        FILE="mame-src/src/osd/sdl/sdlprefix.h"
-        if [ -f "$FILE" ]; then
-          perl -0777 -pe 'if (/struct\s+_IO_FILE\s*\{/) { s/struct\s+_IO_FILE\s*\{.*?\}\s*;[ \t]*(?:\/\/[^\n]*)?/struct _IO_FILE;/s }' "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
-        fi
+      - name: Cache emsdk
+        id: cache-emsdk
+        uses: actions/cache@v4
+        with:
+          path: emsdk
+          key: emsdk-${{ env.EMSDK_VERSION }}-${{ runner.os }}
 
-    - name: Compile MAME Tools
-      run: |
-        cd mame-src
-        
-        # 1) Compila o executável do GENie para a arquitetura host (Linux x64 do runner)
-        emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 genie
-        
-        # 2) Executa o comando que força o GENie a mapear o target asmjs do chdman e criar as pastas de build
-        emmake make WEBASSEMBLY=1 TOOLS=1 SUBTARGET=chdman NOWERROR=1 
+      - name: Clonar emsdk
+        if: steps.cache-emsdk.outputs.cache-hit != 'true'
+        run: git clone https://github.com/emscripten-core/emsdk.git emsdk
 
-        MAKEFILE_PATH="build/projects/sdl/mame/gmake-asmjs/chdman.make"
-        if [ -f "$MAKEFILE_PATH" ]; then
-          sed -i 's/-Werror//g' "$MAKEFILE_PATH"
-          sed -i 's/ERROR_ON_UNDEFINED_SYMBOLS=1/ERROR_ON_UNDEFINED_SYMBOLS=0/g' "$MAKEFILE_PATH"
-          sed -i 's/ERROR_ON_UNDEFINED_SYMBOLS=true/ERROR_ON_UNDEFINED_SYMBOLS=false/g' "$MAKEFILE_PATH"
-          sed -i '/EXPORTED_FUNCTIONS/d' "$MAKEFILE_PATH"
-          sed -i '/DEFAULT_LIBRARY_FUNCS_TO_INCLUDE/d' "$MAKEFILE_PATH"
-        else
-          echo "Erro crítico: chdman.make nao foi encontrado em $MAKEFILE_PATH" >&2
-          exit 1
-        fi
+      - name: Instalar/ativar emsdk ($EMSDK_VERSION)
+        run: |
+          cd emsdk
+          ./emsdk install "$EMSDK_VERSION"
+          ./emsdk activate "$EMSDK_VERSION"
 
-        export EMMAKEN_CFLAGS="-sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -Wno-error=undefined"
-        emmake make -R -C build/projects/sdl/mame/gmake-asmjs -f chdman.make config=release -j$(nproc)
+      - name: Gerar Makefiles (genie)
+        run: |
+          source emsdk/emsdk_env.sh
+          cd mame-src
+          emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 genie
 
-    - name: Validate and Move Artifacts
-      run: |
-        mkdir -p public
-        
-        CRU_FILE=$(find mame-src/ -name "chdman" -type f | grep -v "\.git" | head -n 1)
-        if [ -n "$CRU_FILE" ] && [ -f "$CRU_FILE" ]; then
-          echo "Detectado arquivo js sem extensão em: $CRU_FILE. Renomeando para .js..."
-          mv "$CRU_FILE" "${CRU_FILE}.js"
-        fi
+      - name: Corrigir símbolos no chdman.make
+        run: |
+          MAKEFILE_PATH="mame-src/build/projects/sdl/mame/gmake-asmjs/chdman.make"
+          if [ -f "$MAKEFILE_PATH" ]; then
+            sed -i 's/-Werror//g' "$MAKEFILE_PATH"
+            sed -i 's/ERROR_ON_UNDEFINED_SYMBOLS=1/ERROR_ON_UNDEFINED_SYMBOLS=0/g' "$MAKEFILE_PATH"
+            sed -i 's/ERROR_ON_UNDEFINED_SYMBOLS=true/ERROR_ON_UNDEFINED_SYMBOLS=false/g' "$MAKEFILE_PATH"
+            sed -i '/EXPORTED_FUNCTIONS/d' "$MAKEFILE_PATH"
+            sed -i '/DEFAULT_LIBRARY_FUNCS_TO_INCLUDE/d' "$MAKEFILE_PATH"
+          else
+            echo "Erro catastrófico: chdman.make não foi gerado pelo GENie." >&2
+            exit 1
+          fi
 
-        JS_FILE=$(find mame-src/ -name "chdman.js" | head -n 1)
-        WASM_FILE=$(find mame-src/ -name "chdman.wasm" | head -n 1)
+      - name: Compilar chdman (emmake)
+        env:
+          EMMAKEN_CFLAGS: "-sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -Wno-error=undefined"
+        run: |
+          source emsdk/emsdk_env.sh
+          emmake make -R -C mame-src/build/projects/sdl/mame/gmake-asmjs -f chdman.make config=release -j"$(nproc)"
 
-        if [ -z "$JS_FILE" ] || [ ! -f "$JS_FILE" ]; then
-          echo "Erro estrito: chdman.js NAO foi encontrado!" >&2
-          exit 1
-        fi
+      - name: Coletar artefatos (chdman.js / chdman.wasm)
+        run: |
+          mkdir -p public
+          TARGET_BIN_DIR="mame-src/build/projects/sdl/mame/gmake-asmjs/bin/asmjs/release"
+          if [ -f "$TARGET_BIN_DIR/chdman" ] && [ ! -f "$TARGET_BIN_DIR/chdman.js" ]; then
+            mv "$TARGET_BIN_DIR/chdman" "$TARGET_BIN_DIR/chdman.js"
+          fi
 
-        if [ -z "$WASM_FILE" ] || [ ! -f "$WASM_FILE" ]; then
-          echo "Erro estrito: chdman.wasm NAO foi encontrado!" >&2
-          exit 1
-        fi
+          JS_FILE=$(find mame-src -name "chdman.js" | head -n 1)
+          WASM_FILE=$(find mame-src -name "chdman.wasm" | head -n 1)
 
-        cp "$JS_FILE" public/
-        cp "$WASM_FILE" public/
-        
-        rm -rf mame-src
+          if [ -z "$JS_FILE" ] || [ ! -f "$JS_FILE" ]; then
+            echo "Erro: chdman.js NÃO foi gerado pelo compilador!" >&2
+            exit 1
+          fi
+          if [ -z "$WASM_FILE" ] || [ ! -f "$WASM_FILE" ]; then
+            echo "Erro: chdman.wasm NÃO foi gerado pelo compilador!" >&2
+            exit 1
+          fi
 
-    - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v7
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: "feat: update chdman wasm binaries in public/"
-        branch: update-chdman-wasm
-        title: "Feat: Update CHDMAN WASM Binaries"
-        body: "Automated PR generated by GitHub Actions to update chdman.js and chdman.wasm in the public directory."
-        base: main
+          cp "$JS_FILE" public/
+          cp "$WASM_FILE" public/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chdman-wasm
+          path: public/
+          retention-days: 14
