@@ -78,13 +78,7 @@ jobs:
           source emsdk/emsdk_env.sh
           export EMSCRIPTEN="$(pwd)/emsdk/upstream/emscripten"
           cd mame-src
-          # "generate" cria os fontes gerados (generated/version.cpp, git_desc,
-          # layouts .lh, traduções .mo) — necessário antes de compilar.
-          # EMULATOR=0: só precisamos das TOOLS (chdman), não do emulador completo.
           emmake make WEBASSEMBLY=1 TOOLS=1 EMULATOR=0 NOWERROR=1 generate
-          # NOTA: o target "genie" do MAME só compila o binário do GENie,
-          # NÃO gera os .make de projeto. Quem gera é o Makefile do diretório
-          # do target real (aqui pedido explicitamente como alvo).
           emmake make WEBASSEMBLY=1 TOOLS=1 EMULATOR=0 NOWERROR=1 REGENIE=1 \
             build/projects/sdl/mame/gmake-asmjs/Makefile
 
@@ -106,13 +100,10 @@ jobs:
 
       - name: Compilar chdman (emmake)
         env:
-          EMMAKEN_CFLAGS: "-sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -Wno-error=undefined"
+          EMCC_CFLAGS: "-sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -Wno-error=undefined"
         run: |
           source emsdk/emsdk_env.sh
           cd mame-src/build/projects/sdl/mame/gmake-asmjs
-          # Usar o Makefile gerado (não chdman.make isolado) — ele conhece a
-          # ordem de dependência entre libs internas (libutils.a, libocore.a...)
-          # e o target chdman as builda antes de linkar.
           emmake make -R config=release precompile
           emmake make -R config=release chdman -j"$(nproc)"
 
