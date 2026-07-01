@@ -107,36 +107,26 @@ jobs:
           emmake make -R config=release precompile
           emmake make -R config=release chdman -j"$(nproc)"
 
-      - name: Coletar artefatos (chdman.js / chdman.wasm)
+      - name: Coletar artefatos (chdman.*)
         run: |
           mkdir -p public
-          TARGET_BIN_DIR="mame-src/build/projects/sdl/mame/gmake-asmjs/bin/asmjs/release"
 
-          echo "Conteúdo de $TARGET_BIN_DIR (debug):"
-          find "$TARGET_BIN_DIR" -maxdepth 1 2>&1 || echo "(diretório não existe)"
+          echo "Arquivos 'chdman*' encontrados em mame-src/build:"
+          find mame-src/build -iname "chdman*" -type f ! -iname "*.o" ! -iname "*.d" ! -iname "*.make"
 
-          if [ -f "$TARGET_BIN_DIR/chdman" ] && [ ! -f "$TARGET_BIN_DIR/chdman.js" ]; then
-            mv "$TARGET_BIN_DIR/chdman" "$TARGET_BIN_DIR/chdman.js"
-          fi
+          FOUND=0
+          while IFS= read -r f; do
+            cp "$f" public/
+            FOUND=1
+          done < <(find mame-src/build -iname "chdman*" -type f ! -iname "*.o" ! -iname "*.d" ! -iname "*.make")
 
-          JS_FILE=$(find mame-src -name "chdman.js" | head -n 1)
-          WASM_FILE=$(find mame-src -name "chdman.wasm" | head -n 1)
-
-          if [ -z "$JS_FILE" ] || [ ! -f "$JS_FILE" ]; then
-            echo "Erro: chdman.js NÃO foi encontrado no local esperado." >&2
-            echo "Buscando qualquer arquivo chamado 'chdman*' em todo mame-src/build (debug):" >&2
-            find mame-src/build -iname "chdman*" 2>&1 >&2
-            exit 1
-          fi
-          if [ -z "$WASM_FILE" ] || [ ! -f "$WASM_FILE" ]; then
-            echo "Erro: chdman.wasm NÃO foi encontrado no local esperado." >&2
-            echo "Buscando qualquer arquivo chamado 'chdman*' em todo mame-src/build (debug):" >&2
-            find mame-src/build -iname "chdman*" 2>&1 >&2
+          if [ "$FOUND" -eq 0 ]; then
+            echo "Erro: nenhum arquivo 'chdman*' foi encontrado em mame-src/build." >&2
             exit 1
           fi
 
-          cp "$JS_FILE" public/
-          cp "$WASM_FILE" public/
+          echo "Conteúdo final de public/:"
+          ls -la public/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
