@@ -76,8 +76,13 @@ jobs:
       - name: Gerar Makefiles (genie)
         run: |
           source emsdk/emsdk_env.sh
+          export EMSCRIPTEN="$(pwd)/emsdk/upstream/emscripten"
           cd mame-src
-          emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 genie
+          # NOTA: o target "genie" do MAME só compila o binário do GENie,
+          # NÃO gera os .make de projeto. Quem gera é o Makefile do diretório
+          # do target real (aqui pedido explicitamente como alvo).
+          emmake make WEBASSEMBLY=1 TOOLS=1 NOWERROR=1 REGENIE=1 \
+            build/projects/sdl/mame/gmake-asmjs/Makefile
 
       - name: Corrigir símbolos no chdman.make
         run: |
@@ -90,6 +95,8 @@ jobs:
             sed -i '/DEFAULT_LIBRARY_FUNCS_TO_INCLUDE/d' "$MAKEFILE_PATH"
           else
             echo "Erro catastrófico: chdman.make não foi gerado pelo GENie." >&2
+            echo "Conteúdo de mame-src/build/projects/sdl/mame/ (debug):" >&2
+            find mame-src/build/projects/sdl/mame -maxdepth 2 2>&1 >&2 || echo "(diretório nem existe)" >&2
             exit 1
           fi
 
