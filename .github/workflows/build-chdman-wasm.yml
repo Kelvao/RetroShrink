@@ -131,7 +131,7 @@ jobs:
           cp mame-src/chdman public/chdman.js
           cp mame-src/chdman.wasm public/chdman.wasm
 
-      - name: Generate version JSON for badges
+      - name: Generate version JSON for badges and update README links
         run: |
           cat <<EOF > .retroshrink-badge.json
           {
@@ -139,6 +139,8 @@ jobs:
             "emsdk": "${{ env.EMSDK_RESOLVED_VERSION }}"
           }
           EOF
+          sed -i -E "s|https://github.com/mamedev/mame/releases/tag/[^)]+|https://github.com/mamedev/mame/releases/tag/${{ env.MAME_REF }}|g" README.md
+          sed -i -E "s|https://github.com/emscripten-core/emsdk/releases/tag/[^)]+|https://github.com/emscripten-core/emsdk/releases/tag/${{ env.EMSDK_RESOLVED_VERSION }}|g" README.md
           
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
@@ -148,11 +150,6 @@ jobs:
             public/chdman.js
             public/chdman.wasm
           retention-days: 14
-
-      - name: Update links from MAME and emsdk into README
-        run: |
-          sed -i -E "s|https://github.com/mamedev/mame/releases/tag/[^)]+|https://github.com/mamedev/mame/releases/tag/${{ env.MAME_REF }}|g" README.md
-          sed -i -E "s|https://github.com/emscripten-core/emsdk/releases/tag/[^)]+|https://github.com/emscripten-core/emsdk/releases/tag/${{ env.EMSDK_RESOLVED_VERSION }}|g" README.md
       
       - name: Open pull request with build output
         uses: peter-evans/create-pull-request@v8
@@ -170,6 +167,7 @@ jobs:
             **Files**
             - `public/chdman.js` — Emscripten glue code
             - `public/chdman.wasm` — WebAssembly binary
+            - `README.md` — Updated links to MAME and emsdk releases
             - `.retroshrink-badge.json` - Versioning data for badges
             
             Please review the diff before merging; the binary is built from the MAME source at the ref/commit listed above.
