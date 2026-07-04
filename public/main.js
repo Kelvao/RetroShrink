@@ -8,7 +8,6 @@ const btnConvert  = document.getElementById('btnConvert');
 const mediaType   = document.getElementById('mediaType');
 const compression = document.getElementById('compression');
 const dropHint    = document.getElementById('dropHint');
-const platformGrid= document.getElementById('platformGrid');
 
 const progressCard  = document.getElementById('progressCard');
 const progressLabel = document.getElementById('progressLabel');
@@ -21,15 +20,8 @@ const resultName  = document.getElementById('resultName');
 const resultMeta  = document.getElementById('resultMeta');
 const btnDownload = document.getElementById('btnDownload');
 
-let selectedFile = null;
+let selectedFiles = [];
 let worker = null;
-
-const COMPRESSION_DEFAULTS = {
-  cd:  'cdlz',
-  dvd: 'zlib',
-  gdi: 'cdlz',
-  hd:  'zstd',
-};
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';
@@ -39,42 +31,29 @@ function formatBytes(bytes) {
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 }
 
-function selectPlatform(tag) {
-  platformGrid.querySelectorAll('.platform-tag').forEach(t => t.classList.remove('selected'));
-  tag.classList.add('selected');
+function setFile(files) {
+  selectedFiles = Array.from(files);
+  
+  if (selectedFiles.length === 0) {
+    clearFile();
+    return;
+  }
 
-  const media = tag.dataset.media;
-  const exts  = tag.dataset.ext;
-
-  mediaType.value   = media === 'gdi' ? 'cd' : media;
-  compression.value = COMPRESSION_DEFAULTS[media] || 'cdlz';
-  fileInput.accept  = exts;
-  dropHint.textContent = exts.split(',').join(' ');
-}
-
-platformGrid.querySelectorAll('.platform-tag').forEach(tag => {
-  tag.addEventListener('click', () => selectPlatform(tag));
-});
-
-function guessMediaFromFile(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  const tag = [...platformGrid.querySelectorAll('.platform-tag')].find(t => {
-    return t.dataset.ext.split(',').some(e => e.trim() === '.' + ext);
-  });
-  if (tag) selectPlatform(tag);
-}
-
-function setFile(file) {
-  selectedFile = file;
-  fileName.textContent = file.name;
-  fileSize.textContent = formatBytes(file.size);
+  const mainFile = selectedFiles[0];
+  fileName.textContent = mainFile.name;
+  fileSize.textContent = formatBytes(mainFile.size);
+  
+  if (selectedFiles.length > 1) {
+    fileName.textContent += ` (+${selectedFiles.length - 1})`;
+  }
+  
   fileInfo.classList.add('visible');
   btnConvert.disabled = false;
-  guessMediaFromFile(file);
+  guessMediaFromFile(mainFile);
 }
 
 function clearFile() {
-  selectedFile = null;
+  selectedFiles = [];
   fileInput.value = '';
   fileInfo.classList.remove('visible');
   btnConvert.disabled = true;
@@ -96,7 +75,7 @@ function setProgress(pct, label) {
 }
 
 fileInput.addEventListener('change', () => {
-  if (fileInput.files[0]) setFile(fileInput.files[0]);
+  if (fileInput.files.length > 0) setFile(fileInput.files);
 });
 
 dropZone.addEventListener('dragover', (e) => {
@@ -109,19 +88,21 @@ dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-ove
 dropZone.addEventListener('drop', (e) => {
   e.preventDefault();
   dropZone.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) setFile(file);
+  const files = e.dataTransfer.files;
+  if (files.length > 0) setFile(files);
 });
 
 btnClear.addEventListener('click', clearFile);
 
 btnConvert.addEventListener('click', () => {
-  if (!selectedFile) return;
+  if (selectedFiles.length === 0) return;
   startConversion();
 });
 
 function startConversion() {
   if (worker) worker.terminate();
+
+  const mainFile = selectedFiles[0];
 
   log.innerHTML = '';
   progressCard.classList.add('visible');
@@ -133,10 +114,11 @@ function startConversion() {
 
   worker.postMessage({
     type: 'convert',
-    file: selectedFile,
+    file: mainFile,
+    files: selectedFiles,
     mediaType: mediaType.value,
     compression: compression.value,
-    outputName: selectedFile.name.replace(/\.[^.]+$/, '') + '.chd',
+    outputName: mainFile.name.replace(/\.[^.]+$/, '') + '.chd',
   });
 
   worker.addEventListener('message', (e) => {
