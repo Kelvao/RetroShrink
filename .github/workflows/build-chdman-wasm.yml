@@ -172,4 +172,3 @@ jobs:
             Please review the diff before merging; the binary is built from the MAME source at the ref/commit listed above.
           branch: "ci/chdman-wasm"
           add-paths: public/*
-          delete-branch: true
