@@ -13,7 +13,7 @@ A static application that allows you to:
 
 ## Repository Structure
 
-- `frontend/public/`
+- `public/`
   - `index.html` - main app interface
   - `main.js` - frontend logic and worker communication
   - `worker.js` - worker executing the `chdman` WebAssembly
@@ -24,9 +24,9 @@ A static application that allows you to:
 
 ## How to Use
 
-The app is static and must be served via HTTP for the `Worker` and resources to function properly. Both `chdman.js` and `chdman.wasm` are required and served from the `frontend/public/` directory.
+The app is static and must be served via HTTP for the `Worker` and resources to function properly. Both `chdman.js` and `chdman.wasm` are required and served from the `public/` directory.
 
-1. Serve `frontend/public/` with a simple HTTP server.
+1. Serve `public/` with a simple HTTP server.
 2. Open your browser at `http://localhost:PORT`.
 3. Drag or select a ROM.
 4. Click `Convert to CHD`.
@@ -34,14 +34,14 @@ The app is static and must be served via HTTP for the `Worker` and resources to 
 
 ### Quick Example with Python
 
-    cd frontend/public
+    cd public
     python3 -m http.server 8000
 
 Access at `http://localhost:8000`.
 
 ## WASM Build
 
-The `chdman.js` and `chdman.wasm` files are served directly from the `frontend/public/` directory. The automated compilation for these files is configured in:
+The `chdman.js` and `chdman.wasm` files are served directly from the `public/` directory. The automated compilation for these files is configured in:
 
 - `.github/workflows/build-chdman-wasm.yml`
 
