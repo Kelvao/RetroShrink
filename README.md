@@ -4,8 +4,8 @@
 [![Uptime](https://img.shields.io/uptimerobot/ratio/m803438082-8cc629151c0346a7bf46cecb?label=Uptime)](https://stats.uptimerobot.com/AhVkgcXoGz)
 
 
-[![MAME](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FKelvao%2FRetroShrink%2Fmain%2F.retroshrink-badge.json&query=%24.mame&label=MAME&color=blue)](https://github.com/mamedev/mame/releases/tag/master)
-[![emsdk](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FKelvao%2FRetroShrink%2Fmain%2F.retroshrink-badge.json&query=%24.emsdk&label=emsdk&color=green)](https://github.com/emscripten-core/emsdk/releases/tag/main)
+[![MAME](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FKelvao%2FRetroShrink%2Fmain%2F.retroshrink-badge.json&query=%24.mame&label=MAME&color=blue)](https://github.com/mamedev/mame/releases/tag/mame0288)
+[![emsdk](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FKelvao%2FRetroShrink%2Fmain%2F.retroshrink-badge.json&query=%24.emsdk&label=emsdk&color=green)](https://github.com/emscripten-core/emsdk/releases/tag/6.0.2)
 
 RetroShrink is a web interface for converting ROMs into CHD images directly in the browser using `chdman` compiled to WebAssembly.
 
