@@ -1,5 +1,5 @@
 # RetroShrink
-[![Official Website](https://img.shields.io/badge/Official_Website-RetroShrink-6f42c1?style=for-the-badge)](https://retroshrink.pages.dev/)
+[![Official Website](https://img.shields.io/badge/Official_Website-RetroShrink-6f42c1)](https://retroshrink.pages.dev/)
 ![MAME](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FKelvao%2FRetroShrink%2Fmain%2F.retroshrink-badge.json&query=%24.mame&label=MAME&color=blue)
 ![emsdk](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FKelvao%2FRetroShrink%2Fmain%2F.retroshrink-badge.json&query=%24.emsdk&label=emsdk&color=green)
 
