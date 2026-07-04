@@ -53,22 +53,18 @@ This workflow checks out MAME, installs dependencies, configures Emscripten, and
 - The app uses the browser's local storage (OPFS) to write the CHD before downloading.
 - As a static frontend, it can be hosted on services like Netlify, Vercel, or GitHub Pages as long as both the WASM and JS files are served correctly from the public directory.
 
-## Contact
-
-Use this repository as a base to improve the ROM conversion experience via WebAssembly.
-
----
-
 ## Credits
 
 This project relies heavily on the core components of the **MAME** project. 
 
 Special thanks to:
 * [**Nicola Salmoria**](https://github.com/nsalmoria) (and early core team members) for creating and initiating the MAME project.
+* [**The MAME Development Team**](https://github.com/mamedev) for their continuous effort in maintaining and expanding the project.
 * [**All MAME contributors**](https://github.com/mamedev/mame/graphs/contributors) for their decades of dedicated work in digital preservation and creating the `chdman` tool.
 
 <p align="center">
   <a href="https://www.mamedev.org/">
-    <img src="https://www.mamedev.org/logo.png" alt="MAME Logo" width="200"/>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c5/MAMELogo.svg" alt="MAME Logo" width="200"/>
   </a>
 </p>
+<!-- -->
