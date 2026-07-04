@@ -1,0 +1,11 @@
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Resource-Policy: same-origin
+  Cache-Control: public, max-age=3600
+
+/chdman.wasm
+  Cache-Control: public, max-age=604800, immutable
+
+/chdman.js
+  Cache-Control: public, max-age=604800, immutable
