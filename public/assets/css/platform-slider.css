@@ -1,0 +1,26 @@
+.platform-slider {
+    display: inline-block;
+    position: relative;
+    overflow: hidden;
+    height: 1.2em;
+    vertical-align: bottom;
+}
+
+#platform-name {
+    display: inline-block;
+    white-space: nowrap;
+    transform: translateY(0);
+    transition:
+        transform 300ms ease,
+        opacity 300ms ease;
+}
+
+#platform-name.slide-out {
+    transform: translateY(-100%);
+    opacity: 0;
+}
+
+#platform-name.slide-in {
+    transform: translateY(100%);
+    opacity: 0;
+}
