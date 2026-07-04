@@ -17,7 +17,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/ci/chdman-wasm'
     timeout-minutes: 90
     permissions:
       contents: write
@@ -170,5 +169,9 @@ jobs:
             - `.retroshrink-badge.json` - Versioning data for badges
             
             Please review the diff before merging; the binary is built from the MAME source at the ref/commit listed above.
-          branch: "ci/chdman-wasm"
-          add-paths: public/*
+          base: ${{ github.ref_name }}
+          branch: "ci/chdman-wasm-${{ github.run_id }}"
+          delete-branch: true
+          add-paths: |
+            public/*
+            .retroshrink-badge.json
