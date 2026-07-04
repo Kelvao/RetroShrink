@@ -62,9 +62,9 @@ Special thanks to:
 * [**The MAME Development Team**](https://github.com/mamedev) for their continuous effort in maintaining and expanding the project.
 * [**All MAME contributors**](https://github.com/mamedev/mame/graphs/contributors) for their decades of dedicated work in digital preservation and creating the `chdman` tool.
 
-<p align="center">
+<br/>
+<div align="center">
   <a href="https://www.mamedev.org/">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c5/MAMELogo.svg" alt="MAME Logo" width="200"/>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c3/MAMELogo.svg" alt="MAME" width="800"/>
   </a>
-</p>
-<!-- -->
+</div>
