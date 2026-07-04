@@ -132,11 +132,22 @@ jobs:
           cp mame-src/chdman public/chdman.js
           cp mame-src/chdman.wasm public/chdman.wasm
 
+      - name: Generate version JSON for badges
+        run: |
+          cat <<EOF > .retroshrink-badge.json
+          {
+            "mame": "${{ env.MAME_REF }}",
+            "emsdk": "${{ env.EMSDK_RESOLVED_VERSION }}"
+          }
+          EOF
+          
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         with:
           name: chdman-wasm
-          path: public/
+          path: |
+            public/
+            .retroshrink-badge.json
           retention-days: 14
 
       - name: Open pull request with build output
@@ -155,7 +166,8 @@ jobs:
             **Files**
             - `public/chdman.js` — Emscripten glue code
             - `public/chdman.wasm` — WebAssembly binary
-
+            - `.retroshrink-badge.json` - Versioning data for badges
+            
             Please review the diff before merging; the binary is built from the MAME source at the ref/commit listed above.
           branch: "chdman-build-${{ github.run_id }}"
           add-paths: public/*

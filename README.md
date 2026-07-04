@@ -1,4 +1,7 @@
 # RetroShrink
+[![Official Website](https://img.shields.io/badge/Official_Website-RetroShrink-6f42c1)](https://retroshrink.pages.dev/)
+![MAME](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FKelvao%2FRetroShrink%2Fmain%2F.retroshrink-badge.json&query=%24.mame&label=MAME&color=blue)
+![emsdk](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FKelvao%2FRetroShrink%2Fmain%2F.retroshrink-badge.json&query=%24.emsdk&label=emsdk&color=green)
 
 RetroShrink is a web interface for converting ROMs into CHD images directly in the browser using `chdman` compiled to WebAssembly.
 
@@ -13,7 +16,7 @@ A static application that allows you to:
 
 ## Repository Structure
 
-- `frontend/public/`
+- `public/`
   - `index.html` - main app interface
   - `main.js` - frontend logic and worker communication
   - `worker.js` - worker executing the `chdman` WebAssembly
@@ -24,9 +27,9 @@ A static application that allows you to:
 
 ## How to Use
 
-The app is static and must be served via HTTP for the `Worker` and resources to function properly. Both `chdman.js` and `chdman.wasm` are required and served from the `frontend/public/` directory.
+The app is static and must be served via HTTP for the `Worker` and resources to function properly. Both `chdman.js` and `chdman.wasm` are required and served from the `public/` directory.
 
-1. Serve `frontend/public/` with a simple HTTP server.
+1. Serve `public/` with a simple HTTP server.
 2. Open your browser at `http://localhost:PORT`.
 3. Drag or select a ROM.
 4. Click `Convert to CHD`.
@@ -34,14 +37,14 @@ The app is static and must be served via HTTP for the `Worker` and resources to 
 
 ### Quick Example with Python
 
-    cd frontend/public
+    cd public
     python3 -m http.server 8000
 
 Access at `http://localhost:8000`.
 
 ## WASM Build
 
-The `chdman.js` and `chdman.wasm` files are served directly from the `frontend/public/` directory. The automated compilation for these files is configured in:
+The `chdman.js` and `chdman.wasm` files are served directly from the `public/` directory. The automated compilation for these files is configured in:
 
 - `.github/workflows/build-chdman-wasm.yml`
 
@@ -51,7 +54,7 @@ This workflow checks out MAME, installs dependencies, configures Emscripten, and
 
 - Conversion is performed locally in the browser, with no file uploads.
 - The app uses the browser's local storage (OPFS) to write the CHD before downloading.
-- As a static frontend, it can be hosted on services like Netlify, Vercel, or GitHub Pages as long as both the WASM and JS files are served correctly from the public directory.
+- As a static frontend, it can be hosted on services like Netlify or Vercel as long as both the WASM and JS files are served correctly from the public directory.
 
 ## Credits
 
