@@ -178,4 +178,5 @@ jobs:
           delete-branch: true
           add-paths: |
             public/*
+            README.md
             .retroshrink-badge.json
