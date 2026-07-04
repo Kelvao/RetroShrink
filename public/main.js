@@ -8,7 +8,6 @@ const btnConvert  = document.getElementById('btnConvert');
 const mediaType   = document.getElementById('mediaType');
 const compression = document.getElementById('compression');
 const dropHint    = document.getElementById('dropHint');
-const platformSelect = document.getElementById('platform');
 
 const progressCard  = document.getElementById('progressCard');
 const progressLabel = document.getElementById('progressLabel');
@@ -23,60 +22,6 @@ const btnDownload = document.getElementById('btnDownload');
 
 let selectedFiles = [];
 let worker = null;
-
-const COMPRESSION_DEFAULTS = {
-  cd:  'cdlz',
-  dvd: 'zlib',
-  gdi: 'cdlz',
-  hd:  'zstd',
-};
-
-const platformMap = {};
-PLATFORMS.forEach(p => {
-  platformMap[p.value] = p;
-});
-
-function selectPlatform(platformValue) {
-  const platform = platformMap[platformValue];
-  if (!platform) return;
-
-  const media = platform.media;
-  const exts = platform.extensions;
-
-  mediaType.value = media === 'gdi' ? 'cd' : media;
-  compression.value = COMPRESSION_DEFAULTS[media] || 'cdlz';
-  fileInput.accept = exts;
-  
-  const extList = exts.split(',').map(e => e.trim());
-  if (extList.length === 2) {
-    dropHint.textContent = extList.join(' + ');
-  } else if (extList.length > 2) {
-    dropHint.textContent = extList.join(', ');
-  } else {
-    dropHint.textContent = extList[0];
-  }
-}
-
-function guessMediaFromFile(file) {
-  const ext = '.' + file.name.split('.').pop().toLowerCase();
-  for (const platform of PLATFORMS) {
-    if (platform.extensions.split(',').some(e => e.trim() === ext)) {
-      selectPlatform(platform.value);
-      platformSelect.value = platform.value;
-      return;
-    }
-  }
-}
-
-platformSelect.addEventListener('change', () => {
-  if (platformSelect.value) {
-    selectPlatform(platformSelect.value);
-  }
-});
-
-if (PLATFORMS.length > 0) {
-  selectPlatform(PLATFORMS[0].value);
-}
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';

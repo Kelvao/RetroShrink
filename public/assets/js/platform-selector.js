@@ -36,3 +36,62 @@ for (const groupName of groupOrder) {
         select.appendChild(optgroup);
     }
 }
+
+const platformMap = {};
+PLATFORMS.forEach(p => {
+  platformMap[p.value] = p;
+});
+
+const COMPRESSION_DEFAULTS = {
+  cd:  'cdlz',
+  dvd: 'zlib',
+  gdi: 'cdlz',
+  hd:  'zstd',
+};
+
+function selectPlatform(platformValue) {
+  const platform = platformMap[platformValue];
+  if (!platform) return;
+
+  const media = platform.media;
+  const exts = platform.extensions;
+
+  const mediaType = document.getElementById('mediaType');
+  const compression = document.getElementById('compression');
+  const fileInput = document.getElementById('fileInput');
+  const dropHint = document.getElementById('dropHint');
+
+  mediaType.value = media === 'gdi' ? 'cd' : media;
+  compression.value = COMPRESSION_DEFAULTS[media] || 'cdlz';
+  fileInput.accept = exts;
+  
+  const extList = exts.split(',').map(e => e.trim());
+  if (extList.length === 2) {
+    dropHint.textContent = extList.join(' + ');
+  } else if (extList.length > 2) {
+    dropHint.textContent = extList.join(', ');
+  } else {
+    dropHint.textContent = extList[0];
+  }
+}
+
+function guessMediaFromFile(file) {
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  for (const platform of PLATFORMS) {
+    if (platform.extensions.split(',').some(e => e.trim() === ext)) {
+      selectPlatform(platform.value);
+      select.value = platform.value;
+      return;
+    }
+  }
+}
+
+select.addEventListener('change', () => {
+  if (select.value) {
+    selectPlatform(select.value);
+  }
+});
+
+if (PLATFORMS.length > 0) {
+  selectPlatform(PLATFORMS[0].value);
+}

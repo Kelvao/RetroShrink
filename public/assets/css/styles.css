@@ -362,7 +362,7 @@ footer {
     color: var(--text-dim);
     text-align: center;
     font-family: var(--mono);
-    line-height: 1.8;
+    line-height: 1.4;
 }
 
 footer a { color: var(--text-dim); text-decoration: none; }
