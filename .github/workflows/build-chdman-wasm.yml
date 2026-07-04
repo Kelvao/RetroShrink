@@ -135,7 +135,7 @@ jobs:
         run: |
           cat <<EOF > .retroshrink-badge.json
           {
-            "mame": "${{ env.MAME_SHA }}",
+            "mame": "${{ env.MAME_REF }}",
             "emsdk": "${{ env.EMSDK_RESOLVED_VERSION }}"
           }
           EOF
