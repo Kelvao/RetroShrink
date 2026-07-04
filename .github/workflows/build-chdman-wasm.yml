@@ -144,6 +144,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: chdman-wasm
+          include-hidden-files: true
           path: |
             public/chdman.js
             public/chdman.wasm
