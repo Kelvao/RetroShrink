@@ -136,7 +136,7 @@ jobs:
         run: |
           cat <<EOF > .retroshrink-badge.json
           {
-            "mame": "${{ env.MAME_REF }}",
+            "mame": "${{ env.MAME_SHA }}",
             "emsdk": "${{ env.EMSDK_RESOLVED_VERSION }}"
           }
           EOF
@@ -146,7 +146,8 @@ jobs:
         with:
           name: chdman-wasm
           path: |
-            public/
+            public/chdman.js
+            public/chdman.wasm
             .retroshrink-badge.json
           retention-days: 14
 
@@ -169,6 +170,6 @@ jobs:
             - `.retroshrink-badge.json` - Versioning data for badges
             
             Please review the diff before merging; the binary is built from the MAME source at the ref/commit listed above.
-          branch: "chdman-build-${{ github.run_id }}"
+          branch: "ci/chdman-wasm"
           add-paths: public/*
           delete-branch: true
