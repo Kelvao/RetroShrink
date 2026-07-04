@@ -51,7 +51,7 @@ This workflow checks out MAME, installs dependencies, configures Emscripten, and
 
 - Conversion is performed locally in the browser, with no file uploads.
 - The app uses the browser's local storage (OPFS) to write the CHD before downloading.
-- As a static frontend, it can be hosted on services like Netlify, Vercel, or GitHub Pages as long as both the WASM and JS files are served correctly from the public directory.
+- As a static frontend, it can be hosted on services like Netlify or Vercel as long as both the WASM and JS files are served correctly from the public directory.
 
 ## Credits
 
