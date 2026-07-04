@@ -5,7 +5,6 @@
 
 
 [![MAME](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FKelvao%2FRetroShrink%2Fmain%2F.retroshrink-badge.json&query=%24.mame&label=MAME&color=blue)](https://github.com/mamedev/mame/releases/tag/master)
-
 [![emsdk](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FKelvao%2FRetroShrink%2Fmain%2F.retroshrink-badge.json&query=%24.emsdk&label=emsdk&color=green)](https://github.com/emscripten-core/emsdk/releases/tag/main)
 
 RetroShrink is a web interface for converting ROMs into CHD images directly in the browser using `chdman` compiled to WebAssembly.
