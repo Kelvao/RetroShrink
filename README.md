@@ -1,7 +1,7 @@
 # RetroShrink
 [![Official Website](https://img.shields.io/badge/Official_Website-RetroShrink-6f42c1)](https://retroshrink.pages.dev/)
-[![Status](https://img.shields.io/uptimerobot/status/m803438082-8cc629151c0346a7bf46cecb)](https://stats.uptimerobot.com/AhVkgcXoGz)
-[![Uptime](https://img.shields.io/uptimerobot/ratio/m803438082-8cc629151c0346a7bf46cecb)](https://stats.uptimerobot.com/AhVkgcXoGz)
+[![Status](https://img.shields.io/uptimerobot/status/m803438082-8cc629151c0346a7bf46cecb?label=Status)](https://stats.uptimerobot.com/AhVkgcXoGz)
+[![Uptime](https://img.shields.io/uptimerobot/ratio/m803438082-8cc629151c0346a7bf46cecb?label=Uptime)](https://stats.uptimerobot.com/AhVkgcXoGz)
 
 
 [![MAME](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FKelvao%2FRetroShrink%2Fmain%2F.retroshrink-badge.json&query=%24.mame&label=MAME&color=blue)](https://github.com/mamedev/mame/releases/tag/master)
