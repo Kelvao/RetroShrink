@@ -5554,6 +5554,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
 
 
 
+
   var FS_createPath = (...args) => FS.createPath(...args);
 
 
@@ -5621,6 +5622,7 @@ if (Module['printErr']) err = Module['printErr'];
   Module['callMain'] = callMain;
   Module['addRunDependency'] = addRunDependency;
   Module['removeRunDependency'] = removeRunDependency;
+  Module['getExceptionMessage'] = getExceptionMessage;
   Module['FS_preloadFile'] = FS_preloadFile;
   Module['FS_unlink'] = FS_unlink;
   Module['FS_createPath'] = FS_createPath;
@@ -5879,7 +5881,6 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'getExceptionMessageCommon',
   'incrementExceptionRefcount',
   'decrementExceptionRefcount',
-  'getExceptionMessage',
   'Browser',
   'requestFullscreen',
   'requestFullScreen',
