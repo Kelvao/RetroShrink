@@ -5452,6 +5452,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       return func;
     };
 
+
   FS.createPreloadedFile = FS_createPreloadedFile;
   FS.preloadFile = FS_preloadFile;
   FS.staticInit();;
@@ -5504,6 +5505,8 @@ if (Module['printErr']) err = Module['printErr'];
 }
 
 // Begin runtime exports
+  Module['callMain'] = callMain;
+  Module['FS'] = FS;
   var missingLibrarySymbols = [
   'writeI53ToI64',
   'writeI53ToI64Clamped',
@@ -5664,7 +5667,6 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'run',
   'out',
   'err',
-  'callMain',
   'abort',
   'wasmExports',
   'writeStackCookie',
@@ -5781,7 +5783,6 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'FS_createPath',
   'FS_createDevice',
   'FS_readFile',
-  'FS',
   'FS_root',
   'FS_mounts',
   'FS_devices',
@@ -6195,7 +6196,7 @@ async function run(args = programArgs) {
   Module['onRuntimeInitialized']?.();
   consumedModuleProp('onRuntimeInitialized');
 
-  var noInitialRun = Module['noInitialRun'] || false;
+  var noInitialRun = Module['noInitialRun'] || true;
   if (!noInitialRun) callMain(args);
 
   postRun();
