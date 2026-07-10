@@ -120,8 +120,14 @@ self.addEventListener('message', async (e) => {
     const args = buildArgs(mediaType, compression, inputPath, outputPath);
     post({ type: 'log', text: `chdman ${args.join(' ')}` });
 
-    const exitCode = module.callMain(args);
-
+    let exitCode;
+    try {
+      exitCode = module.callMain(args);
+    } catch (err) {
+      const decoded = module.getExceptionMessage ? module.getExceptionMessage(err) : String(err);
+      throw new Error(`chdman lançou uma exceção: ${decoded}`);
+    }
+    
     if (exitCode !== 0) {
       throw new Error(`chdman saiu com código ${exitCode}`);
     }
