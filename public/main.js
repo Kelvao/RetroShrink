@@ -118,7 +118,7 @@ function startConversion() {
   btnConvert.disabled = true;
   setProgress(0, 'Carregando chdman...');
 
-  worker = new Worker('worker.js', { type: 'module' });
+  worker = new Worker('worker.js');
 
   worker.postMessage({
     type: 'convert',

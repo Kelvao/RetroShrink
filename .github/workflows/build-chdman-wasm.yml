@@ -114,7 +114,7 @@ jobs:
 
       - name: Build chdman with emmake
         env:
-          EMCC_CFLAGS: "-sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -Wno-error=undefined"
+          EMCC_CFLAGS: "-sERROR_ON_UNDEFINED_SYMBOLS=0 -sWARN_ON_UNDEFINED_SYMBOLS=0 -Wno-error=undefined -sEXPORTED_RUNTIME_METHODS='[\"FS\",\"callMain\"]' -sNO_INITIAL_RUN=1"
         run: |
           source emsdk/emsdk_env.sh
           cd mame-src/build/projects/sdl/mame/gmake-asmjs
