@@ -10,6 +10,8 @@ function buildArgs(mediaType, compression, inputPath, outputPath) {
       return ['createcd', '--input', inputPath, '--output', outputPath, ...compFlag];
     case 'dvd':
       return ['createdvd', '--input', inputPath, '--output', outputPath, ...compFlag];
+    case 'gdi':
+      return ['createcd', '--input', inputPath, '--output', outputPath, ...compFlag];
     case 'hd':
     default:
       return ['createhd', '--input', inputPath, '--output', outputPath, ...compFlag];
@@ -43,7 +45,7 @@ async function writeOpfsInChunks(module, virtualPath, outputName, onProgress) {
 }
 
 self.addEventListener('message', async (e) => {
-  const { type, file, mediaType, compression, outputName } = e.data;
+  const { type, files, indexFileName, mediaType, compression, outputName } = e.data;
   if (type !== 'convert') return;
 
   const post = (msg) => self.postMessage(msg);
@@ -71,12 +73,15 @@ self.addEventListener('message', async (e) => {
     module.FS.mkdir('/input');
     module.FS.mkdir('/output');
 
-    module.FS.mount(module.WORKERFS, { files: [file] }, '/input');
+    module.FS.mount(module.WORKERFS, { files }, '/input');
 
-    const inputPath  = `/input/${file.name}`;
+    const inputPath  = `/input/${indexFileName}`;
     const outputPath = `/output/${outputName}`;
 
-    post({ type: 'log', text: `Input:  ${file.name} (${file.size} bytes)` });
+    const totalInputSize = files.reduce((sum, f) => sum + f.size, 0);
+    for (const f of files) {
+      post({ type: 'log', text: `Input:  ${f.name} (${f.size} bytes)` });
+    }
     post({ type: 'log', text: `Output: ${outputName}` });
     post({ type: 'progress', pct: 12, label: 'Iniciando chdman...' });
 
@@ -108,7 +113,7 @@ self.addEventListener('message', async (e) => {
       type: 'done',
       outputName,
       opfsPath: outputName,
-      inputSize: file.size,
+      inputSize: totalInputSize,
       outputSize,
     });
 

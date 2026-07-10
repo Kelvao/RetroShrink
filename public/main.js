@@ -23,6 +23,14 @@ const btnDownload = document.getElementById('btnDownload');
 let selectedFiles = [];
 let worker = null;
 
+function pickIndexFile(files) {
+  for (const ext of ['.cue', '.gdi']) {
+    const found = files.find(f => f.name.toLowerCase().endsWith(ext));
+    if (found) return found;
+  }
+  return files[0];
+}
+
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -39,17 +47,17 @@ function setFile(files) {
     return;
   }
 
-  const mainFile = selectedFiles[0];
-  fileName.textContent = mainFile.name;
-  fileSize.textContent = formatBytes(mainFile.size);
-  
+  const indexFile = pickIndexFile(selectedFiles);
+  fileName.textContent = indexFile.name;
+  fileSize.textContent = formatBytes(selectedFiles.reduce((sum, f) => sum + f.size, 0));
+
   if (selectedFiles.length > 1) {
     fileName.textContent += ` (+${selectedFiles.length - 1})`;
   }
   
   fileInfo.classList.add('visible');
   btnConvert.disabled = false;
-  guessMediaFromFile(mainFile);
+  guessMediaFromFile(indexFile);
 }
 
 function clearFile() {
@@ -102,7 +110,7 @@ btnConvert.addEventListener('click', () => {
 function startConversion() {
   if (worker) worker.terminate();
 
-  const mainFile = selectedFiles[0];
+  const indexFile = pickIndexFile(selectedFiles);
 
   log.innerHTML = '';
   progressCard.classList.add('visible');
@@ -114,11 +122,11 @@ function startConversion() {
 
   worker.postMessage({
     type: 'convert',
-    file: mainFile,
     files: selectedFiles,
+    indexFileName: indexFile.name,
     mediaType: mediaType.value,
     compression: compression.value,
-    outputName: mainFile.name.replace(/\.[^.]+$/, '') + '.chd',
+    outputName: indexFile.name.replace(/\.[^.]+$/, '') + '.chd',
   });
 
   worker.addEventListener('message', (e) => {
